@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editor — Cheese Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#10100d;--panel:#171713;--yellow:#ffe34a;--red:#ff3b30;--cream:#fff8df;--muted:#a7a392;--line:rgba(255,227,74,.2)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--cream);font:18px 'Rajdhani',sans-serif;padding-bottom:110px}
+header{padding:22px 5%;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,16,13,.95);z-index:5}
+h1{font:800 16px 'Orbitron',sans-serif;margin:0;letter-spacing:1px}h1 span{color:var(--yellow)}
+header p{margin:6px 0 0;color:var(--muted);font-size:15px}
+main{max-width:860px;margin:0 auto;padding:20px 5%}
+details.group{border:1px solid var(--line);background:var(--panel);margin:16px 0}
+details.group>summary{cursor:pointer;padding:16px;font:700 12px 'Orbitron',sans-serif;letter-spacing:1px;color:var(--yellow);list-style:none}
+details.group>summary::after{content:'＋';float:right}details.group[open]>summary::after{content:'－'}
+.body{padding:4px 16px 16px}
+label{display:block;margin:12px 0 0;font-size:14px;color:var(--muted);letter-spacing:.5px}
+input,textarea,select{width:100%;margin-top:4px;background:#0c0c0a;border:1px solid var(--line);color:var(--cream);padding:10px;font:inherit;border-radius:0}
+textarea{min-height:70px;resize:vertical}input:focus,textarea:focus,select:focus{outline:2px solid var(--yellow)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:560px){.row{grid-template-columns:1fr}}
+.card-box{border:1px dashed var(--line);margin:14px 0;padding:6px 14px 14px}
+.card-box h3{margin:10px 0 0;font:700 12px 'Orbitron',sans-serif;color:var(--cream)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+button{font:700 12px 'Orbitron',sans-serif;letter-spacing:1px;padding:10px 14px;border:1px solid var(--yellow);background:none;color:var(--yellow);cursor:pointer}
+button:hover{background:var(--yellow);color:var(--bg)}button.danger{border-color:var(--red);color:var(--red)}button.danger:hover{background:var(--red);color:#fff}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#0c0c0a;border-top:1px solid var(--line);padding:14px 5%;display:flex;gap:10px;flex-wrap:wrap;align-items:center;z-index:6}
+.bar .primary{background:var(--yellow);color:var(--bg)}.bar small{color:var(--muted);flex:1;min-width:200px}
+.steps{background:var(--panel);border-left:3px solid var(--yellow);padding:12px 16px;margin:16px 0;font-size:16px}
+</style>
+</head>
+<body>
+<header><h1>CHEESE<span>HUB</span> · EDITOR</h1><p>Edita todo aquí, descarga <b>content.js</b> y reemplaza el que está en la carpeta de tu página.</p></header>
+<main>
+  <div class="steps"><b>Cómo se usa:</b> 1) Cambia lo que quieras. 2) Pulsa <b>DESCARGAR content.js</b>. 3) Pon ese archivo dentro de la carpeta de la página reemplazando el anterior. 4) Abre index.html (o vuelve a subir la carpeta a tu hosting). Tus cambios se guardan como borrador en este navegador.</div>
+  <details class="group" open><summary>TEXTOS DE LA PÁGINA</summary><div class="body" id="textsBox"></div></details>
+  <details class="group"><summary>CATEGORÍAS (FILTROS)</summary><div class="body" id="catsBox"></div></details>
+  <details class="group" open><summary>TARJETAS</summary><div class="body" id="cardsBox"></div></details>
+</main>
+<div class="bar">
+  <button class="primary" id="download">DESCARGAR content.js</button>
+  <button id="loadFile">CARGAR content.js</button>
+  <button class="danger" id="reset">DESCARTAR BORRADOR</button>
+  <small id="status">Sin cambios.</small>
+  <input type="file" id="fileInput" accept=".js" hidden>
+</div>
+<script src="content.js"></script>
+<script>
+const KEY='cheesehub-draft';
+const original=JSON.parse(JSON.stringify(window.SITE_CONTENT));
+let C; try{C=JSON.parse(localStorage.getItem(KEY))||JSON.parse(JSON.stringify(original));}catch(e){C=JSON.parse(JSON.stringify(original));}
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem(KEY,JSON.stringify(C));}catch(e){} $('status').textContent='Borrador guardado. Descarga el archivo para aplicarlo.';}
+function el(tag,attrs={},...kids){const n=document.createElement(tag);Object.entries(attrs).forEach(([k,v])=>k==='class'?n.className=v:n.setAttribute(k,v));kids.forEach(k=>n.append(k));return n;}
+function field(label,obj,key,{multi=false,options=null}={}){
+  const wrap=el('label',{},label);
+  let input;
+  if(options){input=el('select');options.forEach(([v,t])=>{const o=el('option',{value:v},t);if(obj[key]===v)o.selected=true;input.append(o);});}
+  else if(multi){input=el('textarea');input.value=obj[key]??'';}
+  else{input=el('input',{type:'text'});input.value=obj[key]??'';}
+  input.addEventListener('input',()=>{obj[key]=input.value;save();});
+  wrap.append(input);return wrap;
+}
+const TEXTS=[
+ ['heroEyebrow','Etiqueta superior (inicio)'],['heroLine1','Título inicio · línea 1'],['heroLine2','Título inicio · línea 2 (resaltada)'],['heroCopy','Descripción de inicio',1],
+ ['catalogLine1','Título catálogo · parte 1'],['catalogLine2','Título catálogo · parte 2 (resaltada)'],['catalogIntro','Intro del catálogo',1],['catalogNote','Nota bajo el catálogo',1],
+ ['aboutLine1','Acerca de · línea 1'],['aboutLine2','Acerca de · línea 2 (resaltada)'],['aboutCopy','Acerca de · texto',1],
+ ['ctaLine1','Cierre · parte 1'],['ctaLine2','Cierre · parte 2 (resaltada)'],['ctaCopy','Cierre · texto'],
+ ['modalNote','Aviso dentro de "Ver detalles"',1],['footerText','Texto del pie de página']];
+function renderTexts(){const b=$('textsBox');b.innerHTML='';TEXTS.forEach(([k,l,m])=>b.append(field(l,C.texts,k,{multi:!!m})));}
+function slug(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'cat';}
+function renderCats(){
+  const b=$('catsBox');b.innerHTML='';
+  C.categories.forEach((c,i)=>{
+    const box=el('div',{class:'card-box'});
+    const lab=field('Nombre del filtro',c,'label');
+    lab.querySelector('input').addEventListener('change',()=>{ // el id se mantiene salvo que no exista
+      if(!c.id) c.id=slug(c.label);save();});
+    box.append(lab);
+    const rm=el('button',{class:'danger'},'ELIMINAR');rm.onclick=()=>{if(confirm('¿Eliminar esta categoría?')){C.categories.splice(i,1);save();renderCats();renderCards();}};
+    box.append(el('div',{class:'btns'},rm));b.append(box);
+  });
+  const add=el('button',{},'+ AÑADIR CATEGORÍA');add.onclick=()=>{let n=C.categories.length+1,id='categoria-'+n;while(C.categories.some(c=>c.id===id))id='categoria-'+(++n);C.categories.push({id,label:'Nueva categoría'});save();renderCats();renderCards();};
+  b.append(add);
+}
+function move(i,d){const j=i+d;if(j<0||j>=C.cards.length)return;[C.cards[i],C.cards[j]]=[C.cards[j],C.cards[i]];save();renderCards();}
+function renderCards(){
+  const b=$('cardsBox');b.innerHTML='';
+  C.cards.forEach((c,i)=>{
+    const box=el('div',{class:'card-box'});
+    box.append(el('h3',{},(i+1)+'. '+(c.title||'Tarjeta')));
+    box.append(field('Título',c,'title'),field('Descripción corta',c,'description',{multi:true}),field('Texto de "Ver detalles"',c,'details',{multi:true}));
+    const r1=el('div',{class:'row'});
+    r1.append(field('Categoría',c,'category',{options:C.categories.map(x=>[x.id,x.label])}),field('Estilo visual',c,'visual',{options:[['ui','Interfaz'],['hop','Nodos / servidores'],['move','Velocidad']]}));
+    const r2=el('div',{class:'row'});r2.append(field('Etiqueta (abajo)',c,'tag'),field('Tipo (arriba, ej. GAME)',c,'meta'));
+    const r3=el('div',{class:'row'});r3.append(field('Código (ej. CH-004)',c,'code'),field('Estado (ej. DEMO, NUEVO)',c,'status'));
+    box.append(r1,r2,r3,field('Icono (un símbolo o emoji)',c,'icon'));
+    const up=el('button',{},'↑ SUBIR'),dn=el('button',{},'↓ BAJAR'),rm=el('button',{class:'danger'},'ELIMINAR');
+    up.onclick=()=>move(i,-1);dn.onclick=()=>move(i,1);rm.onclick=()=>{if(confirm('¿Eliminar "'+c.title+'"?')){C.cards.splice(i,1);save();renderCards();}};
+    box.append(el('div',{class:'btns'},up,dn,rm));b.append(box);
+  });
+  const add=el('button',{},'+ AÑADIR TARJETA');add.onclick=()=>{C.cards.push({title:'Nueva tarjeta',description:'Descripción corta.',details:'Información que verá el visitante al abrir los detalles.',category:(C.categories[0]||{}).id||'',tag:'NUEVO',meta:'TIPO',code:'CH-'+String(C.cards.length+1).padStart(3,'0'),status:'NUEVO',visual:'ui',icon:'✦'});save();renderCards();};
+  b.append(add);
+}
+function toFile(){return '/* Generado con editor.html */\nwindow.SITE_CONTENT = '+JSON.stringify(C,null,2)+';\n';}
+$('download').onclick=()=>{const a=el('a',{href:URL.createObjectURL(new Blob([toFile()],{type:'text/javascript'})),download:'content.js'});document.body.append(a);a.click();a.remove();$('status').textContent='Descargado. Reemplaza content.js en la carpeta de tu página.';};
+$('reset').onclick=()=>{if(confirm('¿Descartar el borrador y volver al content.js original?')){localStorage.removeItem(KEY);C=JSON.parse(JSON.stringify(original));init();$('status').textContent='Borrador descartado.';}};
+$('loadFile').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const m=t.match(/SITE_CONTENT\s*=\s*([\s\S]*?);?\s*$/);C=JSON.parse(m[1]);save();init();$('status').textContent='Archivo cargado.';}catch(err){alert('No se pudo leer ese archivo. Usa uno descargado desde este editor.');}});};
+function init(){renderTexts();renderCats();renderCards();}
+init();
+</script>
+</body>
+</html>
